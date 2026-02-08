@@ -69,26 +69,45 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 2. Generate random secrets
+# 2. Generate or reuse secrets
 # ---------------------------------------------------------------------------
-info "Generating random secrets..."
+SECRETS_FILE="$GENERATED_DIR/.secrets"
 
-DB_PASSWORD="$(openssl rand -base64 24 | tr -d '/+=' | head -c 24)"
-REDIS_PASSWORD="$(openssl rand -base64 24 | tr -d '/+=' | head -c 24)"
-REDIS_CACHE_PASSWORD="$(openssl rand -base64 24 | tr -d '/+=' | head -c 24)"
-SECRET_KEY="$(openssl rand -base64 72 | tr -d '/+=' | head -c 60)"
-API_TOKEN_PEPPER="$(openssl rand -base64 48 | tr -d '/+=' | head -c 50)"
-ADMIN_PASSWORD="$(openssl rand -base64 18 | tr -d '/+=' | head -c 16)"
+if [ "$KEEP_DATA" = true ] && [ -f "$SECRETS_FILE" ]; then
+    info "Reusing secrets from previous run..."
+    # shellcheck source=/dev/null
+    source "$SECRETS_FILE"
+    ok "Secrets loaded from $SECRETS_FILE"
+else
+    info "Generating random secrets..."
 
-ok "Secrets generated."
+    DB_PASSWORD="$(openssl rand -base64 24 | tr -d '/+=' | head -c 24)"
+    REDIS_PASSWORD="$(openssl rand -base64 24 | tr -d '/+=' | head -c 24)"
+    REDIS_CACHE_PASSWORD="$(openssl rand -base64 24 | tr -d '/+=' | head -c 24)"
+    SECRET_KEY="$(openssl rand -base64 72 | tr -d '/+=' | head -c 60)"
+    API_TOKEN_PEPPER="$(openssl rand -base64 48 | tr -d '/+=' | head -c 50)"
+    ADMIN_PASSWORD="$(openssl rand -base64 18 | tr -d '/+=' | head -c 16)"
+
+    ok "Secrets generated."
+fi
 
 # ---------------------------------------------------------------------------
 # 3. Resolve env files (templates → generated/)
 # ---------------------------------------------------------------------------
 info "Resolving template files into generated/..."
 
-rm -rf "$GENERATED_DIR"
 mkdir -p "$GENERATED_DIR/env" "$GENERATED_DIR/netbox-configuration"
+
+# Persist secrets so --keep-data can reuse them
+cat > "$SECRETS_FILE" <<SECRETS
+DB_PASSWORD='${DB_PASSWORD}'
+REDIS_PASSWORD='${REDIS_PASSWORD}'
+REDIS_CACHE_PASSWORD='${REDIS_CACHE_PASSWORD}'
+SECRET_KEY='${SECRET_KEY}'
+API_TOKEN_PEPPER='${API_TOKEN_PEPPER}'
+ADMIN_PASSWORD='${ADMIN_PASSWORD}'
+SECRETS
+chmod 600 "$SECRETS_FILE"
 
 resolve() {
     sed \

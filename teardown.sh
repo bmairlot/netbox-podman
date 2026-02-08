@@ -69,7 +69,11 @@ rm -f "$QUADLET_DIR"/netbox-*.container \
 
 systemctl --user daemon-reload
 
-# Remove generated files
-rm -rf "$GENERATED_DIR"
+# Remove generated files (unless --keep-data, which preserves secrets for reuse)
+if [ "$KEEP_DATA" = false ]; then
+    rm -rf "$GENERATED_DIR"
+else
+    info "Keeping generated/ intact (--keep-data)."
+fi
 
 ok "Teardown complete."
