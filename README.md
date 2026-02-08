@@ -24,9 +24,12 @@ CONFIG=$(./bootstrap.sh --json)
 
 # Tear down everything when done:
 ./teardown.sh
+
+# Tear down but keep data (DB, Redis, media) for faster re-bootstrap:
+./teardown.sh --keep-data
 ```
 
-The first run will pull container images and run Django migrations, which may take a few minutes. Subsequent runs are faster.
+The first run will pull container images and run Django migrations, which may take a few minutes. Subsequent runs are faster -- especially with `--keep-data`, which preserves volumes so migrations are skipped entirely.
 
 ### bootstrap.sh
 
@@ -46,7 +49,12 @@ The script will:
 
 ### teardown.sh
 
-Stops all services, removes containers, pods, volumes, the Podman network, installed Quadlet units, and the `generated/` directory.
+| Option | Description |
+|---|---|
+| `--keep-data` | Keep volumes intact (DB, Redis, media) for faster re-bootstrap |
+| `-h`, `--help` | Show usage help |
+
+By default, stops all services and removes containers, pods, volumes, the Podman network, installed Quadlet units, and the `generated/` directory. With `--keep-data`, volumes are preserved so the next `./bootstrap.sh` skips migrations and starts much faster.
 
 ### JSON Output
 

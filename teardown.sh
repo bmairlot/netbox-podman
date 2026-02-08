@@ -5,6 +5,27 @@ REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 GENERATED_DIR="$REPO_DIR/generated"
 QUADLET_DIR="$HOME/.config/containers/systemd"
 
+# ---------------------------------------------------------------------------
+# Argument parsing
+# ---------------------------------------------------------------------------
+KEEP_DATA=false
+for arg in "$@"; do
+    case "$arg" in
+        --keep-data) KEEP_DATA=true ;;
+        -h|--help)
+            echo "Usage: $(basename "$0") [--keep-data]"
+            echo ""
+            echo "Tear down the NetBox stack."
+            echo ""
+            echo "Options:"
+            echo "  --keep-data  Keep volumes intact (DB, Redis, media) for faster re-bootstrap"
+            echo "  -h|--help    Show this help"
+            exit 0
+            ;;
+        *) echo "Unknown option: $arg" >&2; exit 1 ;;
+    esac
+done
+
 BOLD='\033[1m'
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -27,11 +48,15 @@ for c in netbox-netbox netbox-worker netbox-postgres netbox-redis netbox-redis-c
 done
 podman pod rm -f netbox 2>/dev/null || true
 
-# Remove named volumes
-for v in netbox-postgres-data netbox-media-files netbox-report-files netbox-script-files \
-         netbox-redis-data netbox-redis-cache-data netbox-configuration; do
-    podman volume rm -f "$v" 2>/dev/null || true
-done
+# Remove named volumes (unless --keep-data)
+if [ "$KEEP_DATA" = false ]; then
+    for v in netbox-postgres-data netbox-media-files netbox-report-files netbox-script-files \
+             netbox-redis-data netbox-redis-cache-data netbox-configuration; do
+        podman volume rm -f "$v" 2>/dev/null || true
+    done
+else
+    info "Keeping volumes intact (--keep-data)."
+fi
 
 # Remove network
 podman network rm -f netbox 2>/dev/null || true

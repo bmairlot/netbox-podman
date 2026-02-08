@@ -106,6 +106,9 @@ CONFIG=$(./bootstrap.sh --json)
 
 # Tear down everything when done:
 ./teardown.sh
+
+# Tear down but keep data for faster re-bootstrap:
+./teardown.sh --keep-data
 ```
 
 **`bootstrap.sh`** will:
@@ -120,7 +123,7 @@ With `--json`, progress goes to stderr and a JSON object with all connection det
 
 **`teardown.sh`** will:
 1. Stop all NetBox systemd units (pod + network)
-2. Remove containers, pod, volumes, and network
+2. Remove containers, pod, volumes, and network (with `--keep-data`, volumes are preserved)
 3. Remove Quadlet units from `~/.config/containers/systemd/`
 4. Delete the `generated/` directory
 
