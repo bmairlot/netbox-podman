@@ -58,10 +58,14 @@ die()   { printf "${RED}ERROR: %s${RESET}\n" "$*" >&2; exit 1; }
 # ---------------------------------------------------------------------------
 # 1. Teardown
 # ---------------------------------------------------------------------------
+teardown_args=()
 if [ "$KEEP_DATA" = true ]; then
-    "$REPO_DIR/teardown.sh" --keep-data
+    teardown_args+=(--keep-data)
+fi
+if [ "$JSON_OUTPUT" = true ]; then
+    "$REPO_DIR/teardown.sh" "${teardown_args[@]+"${teardown_args[@]}"}" >&2
 else
-    "$REPO_DIR/teardown.sh"
+    "$REPO_DIR/teardown.sh" "${teardown_args[@]+"${teardown_args[@]}"}"
 fi
 
 # ---------------------------------------------------------------------------
@@ -192,6 +196,12 @@ admin_timeout=180
 admin_elapsed=0
 admin_created=false
 
+if [ "$JSON_OUTPUT" = true ]; then
+    admin_stdout_redirect="/dev/stderr"
+else
+    admin_stdout_redirect="/dev/stdout"
+fi
+
 while [ "$admin_elapsed" -lt "$admin_timeout" ]; do
     if podman exec netbox-netbox /opt/netbox/venv/bin/python /opt/netbox/netbox/manage.py shell -c "
 from django.contrib.auth import get_user_model
@@ -204,7 +214,7 @@ else:
     u.set_password('${ADMIN_PASSWORD}')
     u.save()
     print('Superuser password reset.')
-" 2>/dev/null; then
+" > "$admin_stdout_redirect" 2>/dev/null; then
         admin_created=true
         break
     fi
