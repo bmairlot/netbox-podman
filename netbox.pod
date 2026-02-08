@@ -1,0 +1,10 @@
+[Unit]
+Description=Netbox Pod
+
+[Pod]
+PodName=netbox
+PublishPort={{BIND_ADDRESS}}:8000:8080
+Network=netbox
+DNS=172.16.0.1
+IP=172.16.0.172
+

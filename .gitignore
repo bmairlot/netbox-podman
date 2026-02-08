@@ -1,0 +1,9 @@
+generated/
+
+# Editor backups
+*~
+\#*\#
+*.swp
+*.swo
+.idea/
+.vscode/

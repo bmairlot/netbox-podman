@@ -1,0 +1,12 @@
+[Unit]
+Description=Netbox Network
+
+[Network]
+NetworkName=netbox
+IPv6=true
+DisableDNS=false
+Internal=false
+Subnet=172.16.0.0/24
+Gateway=172.16.0.1
+IPRange=172.16.0.0/28
+DNS=172.16.0.1

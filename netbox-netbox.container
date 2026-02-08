@@ -1,0 +1,17 @@
+[Unit]
+Description=Netbox Container
+Requires=netbox-postgres.service netbox-redis.service netbox-redis-cache.service
+
+[Container]
+Image=docker.io/netboxcommunity/netbox:latest-4.0.0
+ContainerName=netbox-netbox
+EnvironmentFile=env/netbox.env
+Volume=netbox-media-files:/opt/netbox/netbox/media:Z
+Volume=netbox-reports-files:/opt/netbox/netbox/reports:Z
+Volume=netbox-scripts-files:/opt/netbox/netbox/scripts:Z
+Volume=./netbox-configuration:/etc/netbox/config:Z,ro
+HealthInterval=15s
+HealthTimeout=3s
+HealthStartPeriod=300s
+HealthCmd=curl -f http://localhost:8080/login/ || exit 1
+Pod=netbox.pod

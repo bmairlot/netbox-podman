@@ -1,0 +1,5 @@
+[Unit]
+Description=netbox-redis-cache-data
+
+[Volume]
+VolumeName=netbox-redis-cache-data

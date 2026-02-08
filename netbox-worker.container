@@ -1,0 +1,24 @@
+[Unit]
+Description=Netbox housekeeping Container
+Requires=netbox-netbox.service
+
+[Container]
+Image=docker.io/netboxcommunity/netbox:latest-4.0.0
+#AddHost=redis:192.168.10.10
+#AddHost=redis-cache:192.168.10.11
+ContainerName=netbox-worker
+EnvironmentFile=env/netbox.env
+Volume=netbox-media-files:/opt/netbox/netbox/media:Z
+Volume=netbox-reports-files:/opt/netbox/netbox/reports:Z
+Volume=netbox-scripts-files:/opt/netbox/netbox/scripts:Z
+Volume=./netbox-configuration:/etc/netbox/config:Z,ro
+
+HealthInterval=15s
+HealthTimeout=3s
+HealthStartPeriod=300s
+HealthCmd=ps -aux | grep -v grep | grep -q rqworker || exit 1
+Exec=/opt/netbox/venv/bin/python /opt/netbox/netbox/manage.py rqworker
+Pod=netbox.pod
+
+[Install]
+WantedBy=multi-user.target

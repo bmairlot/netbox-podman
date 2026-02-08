@@ -1,0 +1,19 @@
+[Unit]
+Description=The redis container for Netbox
+
+[Container]
+ContainerName=netbox-redis
+Image=docker.io/valkey/valkey:8.1-alpine
+EnvironmentFile=env/redis.env
+Exec=sh -c "valkey-server --port $REDIS_PORT --appendonly yes --requirepass $REDIS_PASSWORD"
+Volume=netbox-redis-data:/data
+HealthCmd=valkey-cli --no-auth-warning -u valkey://default:$REDIS_PASSWORD@localhost:$REDIS_PORT/0 ping | grep -q PONG
+HealthStartPeriod=20s
+HealthTimeout=30s
+HealthStartupInterval=10s
+HealthStartupRetries=5
+Notify=healthy
+Pod=netbox.pod
+
+[Install]
+WantedBy=multi-user.target

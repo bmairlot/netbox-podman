@@ -1,0 +1,5 @@
+[Unit]
+Description=netbox-script-files
+
+[Volume]
+VolumeName=netbox-script-files
