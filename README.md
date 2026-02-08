@@ -27,6 +27,9 @@ CONFIG=$(./bootstrap.sh --json)
 
 # Tear down but keep data (DB, Redis, media) for faster re-bootstrap:
 ./teardown.sh --keep-data
+
+# Re-bootstrap reusing existing data volumes:
+./bootstrap.sh --keep-data
 ```
 
 The first run will pull container images and run Django migrations, which may take a few minutes. Subsequent runs are faster -- especially with `--keep-data`, which preserves volumes so migrations are skipped entirely.
@@ -37,6 +40,7 @@ The first run will pull container images and run Django migrations, which may ta
 |---|---|
 | `--json` | Output connection details as JSON to stdout (progress goes to stderr) |
 | `--bind=ADDRESS` | Bind address for published ports (default: `0.0.0.0`) |
+| `--keep-data` | Preserve existing volumes (DB, Redis, media) for faster startup |
 | `-h`, `--help` | Show usage help |
 
 The script will:

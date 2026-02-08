@@ -109,6 +109,9 @@ CONFIG=$(./bootstrap.sh --json)
 
 # Tear down but keep data for faster re-bootstrap:
 ./teardown.sh --keep-data
+
+# Re-bootstrap reusing existing data volumes:
+./bootstrap.sh --keep-data
 ```
 
 **`bootstrap.sh`** will:

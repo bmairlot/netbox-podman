@@ -10,12 +10,14 @@ QUADLET_DIR="$HOME/.config/containers/systemd"
 # ---------------------------------------------------------------------------
 JSON_OUTPUT=false
 BIND_ADDRESS="0.0.0.0"
+KEEP_DATA=false
 for arg in "$@"; do
     case "$arg" in
         --json) JSON_OUTPUT=true ;;
         --bind=*) BIND_ADDRESS="${arg#--bind=}" ;;
+        --keep-data) KEEP_DATA=true ;;
         -h|--help)
-            echo "Usage: $(basename "$0") [--json] [--bind=ADDRESS]"
+            echo "Usage: $(basename "$0") [--json] [--bind=ADDRESS] [--keep-data]"
             echo ""
             echo "Bootstrap a fresh NetBox instance for testing."
             echo ""
@@ -24,6 +26,8 @@ for arg in "$@"; do
             echo "                   (progress is sent to stderr)"
             echo "  --bind=ADDRESS   Bind address for published ports (default: 0.0.0.0)"
             echo "                   Use 127.0.0.1 to restrict to localhost only"
+            echo "  --keep-data      Preserve volumes (DB, Redis, media) from a previous run"
+            echo "                   for faster startup (skips migrations)"
             echo "  -h|--help        Show this help"
             exit 0
             ;;
@@ -52,9 +56,13 @@ fi
 die()   { printf "${RED}ERROR: %s${RESET}\n" "$*" >&2; exit 1; }
 
 # ---------------------------------------------------------------------------
-# 1. Full teardown
+# 1. Teardown
 # ---------------------------------------------------------------------------
-"$REPO_DIR/teardown.sh"
+if [ "$KEEP_DATA" = true ]; then
+    "$REPO_DIR/teardown.sh" --keep-data
+else
+    "$REPO_DIR/teardown.sh"
+fi
 
 # ---------------------------------------------------------------------------
 # 2. Generate random secrets
