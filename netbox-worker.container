@@ -19,6 +19,7 @@ HealthStartPeriod=300s
 HealthCmd=ps -aux | grep -v grep | grep -q rqworker || exit 1
 Exec=/opt/netbox/venv/bin/python /opt/netbox/netbox/manage.py rqworker
 Pod=netbox.pod
+LogDriver=journald
 
 [Install]
 WantedBy=multi-user.target

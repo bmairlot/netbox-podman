@@ -196,14 +196,8 @@ admin_timeout=180
 admin_elapsed=0
 admin_created=false
 
-if [ "$JSON_OUTPUT" = true ]; then
-    admin_stdout_redirect="/dev/stderr"
-else
-    admin_stdout_redirect="/dev/stdout"
-fi
-
-while [ "$admin_elapsed" -lt "$admin_timeout" ]; do
-    if podman exec netbox-netbox /opt/netbox/venv/bin/python /opt/netbox/netbox/manage.py shell -c "
+create_admin() {
+    podman exec netbox-netbox /opt/netbox/venv/bin/python /opt/netbox/netbox/manage.py shell -c "
 from django.contrib.auth import get_user_model
 User = get_user_model()
 if not User.objects.filter(username='admin').exists():
@@ -214,7 +208,11 @@ else:
     u.set_password('${ADMIN_PASSWORD}')
     u.save()
     print('Superuser password reset.')
-" > "$admin_stdout_redirect" 2>/dev/null; then
+" 2>/dev/null
+}
+
+while [ "$admin_elapsed" -lt "$admin_timeout" ]; do
+    if create_admin >&2; then
         admin_created=true
         break
     fi
