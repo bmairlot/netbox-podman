@@ -26,7 +26,7 @@ for arg in "$@"; do
             echo "                   (progress is sent to stderr)"
             echo "  --bind=ADDRESS   Bind address for published ports (default: 0.0.0.0)"
             echo "                   Use 127.0.0.1 to restrict to localhost only"
-            echo "  --keep-data      Preserve volumes (DB, Redis, media) from a previous run"
+            echo "  --keep-data      Preserve volumes (DB, Valkey, media) from a previous run"
             echo "                   for faster startup (skips migrations)"
             echo "  -h|--help        Show this help"
             exit 0
@@ -102,8 +102,8 @@ resolve() {
 
 resolve "$REPO_DIR/env/netbox.env"       "$GENERATED_DIR/env/netbox.env"
 resolve "$REPO_DIR/env/postgres.env"     "$GENERATED_DIR/env/postgres.env"
-resolve "$REPO_DIR/env/redis.env"        "$GENERATED_DIR/env/redis.env"
-resolve "$REPO_DIR/env/redis-cache.env"  "$GENERATED_DIR/env/redis-cache.env"
+resolve "$REPO_DIR/env/valkey.env"       "$GENERATED_DIR/env/valkey.env"
+resolve "$REPO_DIR/env/valkey-cache.env" "$GENERATED_DIR/env/valkey-cache.env"
 
 # Copy the full netbox-configuration directory, then resolve extra.py
 cp -a "$REPO_DIR/netbox-configuration/." "$GENERATED_DIR/netbox-configuration/"
@@ -179,8 +179,8 @@ wait_healthy() {
 
 # Infrastructure services first (shorter timeout)
 wait_healthy netbox-postgres 120
-wait_healthy netbox-redis 60
-wait_healthy netbox-redis-cache 60
+wait_healthy netbox-valkey 60
+wait_healthy netbox-valkey-cache 60
 
 # NetBox app — first run includes migrations, so allow up to 5 minutes
 wait_healthy netbox-netbox 300
@@ -241,12 +241,12 @@ if [ "$JSON_OUTPUT" = true ]; then
   "db_name": "netbox",
   "db_user": "netbox",
   "db_password": "${DB_PASSWORD}",
-  "redis_host": "netbox-redis",
-  "redis_port": 6380,
-  "redis_password": "${REDIS_PASSWORD}",
-  "redis_cache_host": "netbox-redis-cache",
-  "redis_cache_port": 6379,
-  "redis_cache_password": "${REDIS_CACHE_PASSWORD}",
+  "valkey_host": "netbox-valkey",
+  "valkey_port": 6380,
+  "valkey_password": "${REDIS_PASSWORD}",
+  "valkey_cache_host": "netbox-valkey-cache",
+  "valkey_cache_port": 6379,
+  "valkey_cache_password": "${REDIS_CACHE_PASSWORD}",
   "secret_key": "${SECRET_KEY}",
   "api_token_pepper": "${API_TOKEN_PEPPER}"
 }

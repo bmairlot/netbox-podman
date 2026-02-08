@@ -1,0 +1,5 @@
+[Unit]
+Description=netbox-valkey-data
+
+[Volume]
+VolumeName=netbox-valkey-data

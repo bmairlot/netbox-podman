@@ -25,7 +25,7 @@ CONFIG=$(./bootstrap.sh --json)
 # Tear down everything when done:
 ./teardown.sh
 
-# Tear down but keep data (DB, Redis, media) for faster re-bootstrap:
+# Tear down but keep data (DB, Valkey, media) for faster re-bootstrap:
 ./teardown.sh --keep-data
 
 # Re-bootstrap reusing existing data volumes:
@@ -40,12 +40,12 @@ The first run will pull container images and run Django migrations, which may ta
 |---|---|
 | `--json` | Output connection details as JSON to stdout (progress goes to stderr) |
 | `--bind=ADDRESS` | Bind address for published ports (default: `0.0.0.0`) |
-| `--keep-data` | Preserve existing volumes (DB, Redis, media) for faster startup |
+| `--keep-data` | Preserve existing volumes (DB, Valkey, media) for faster startup |
 | `-h`, `--help` | Show usage help |
 
 The script will:
 1. Tear down any existing NetBox stack (calls `teardown.sh`)
-2. Generate random secrets (DB, Redis, Django secret key, API token pepper, admin password)
+2. Generate random secrets (DB, Valkey, Django secret key, API token pepper, admin password)
 3. Resolve `{{PLACEHOLDER}}` tokens in template files into a `generated/` directory
 4. Install Quadlet units to `~/.config/containers/systemd/`
 5. Start the pod and wait for all health checks to pass
@@ -55,7 +55,7 @@ The script will:
 
 | Option | Description |
 |---|---|
-| `--keep-data` | Keep volumes intact (DB, Redis, media) for faster re-bootstrap |
+| `--keep-data` | Keep volumes intact (DB, Valkey, media) for faster re-bootstrap |
 | `-h`, `--help` | Show usage help |
 
 By default, stops all services and removes containers, pods, volumes, the Podman network, installed Quadlet units, and the `generated/` directory. With `--keep-data`, volumes are preserved so the next `./bootstrap.sh` skips migrations and starts much faster.
@@ -75,12 +75,12 @@ When using `--json`, the output contains everything a test harness needs:
   "db_name": "netbox",
   "db_user": "netbox",
   "db_password": "...",
-  "redis_host": "netbox-redis",
-  "redis_port": 6380,
-  "redis_password": "...",
-  "redis_cache_host": "netbox-redis-cache",
-  "redis_cache_port": 6379,
-  "redis_cache_password": "...",
+  "valkey_host": "netbox-valkey",
+  "valkey_port": 6380,
+  "valkey_password": "...",
+  "valkey_cache_host": "netbox-valkey-cache",
+  "valkey_cache_port": 6379,
+  "valkey_cache_password": "...",
   "secret_key": "...",
   "api_token_pepper": "..."
 }
@@ -117,8 +117,8 @@ All services run inside a single Podman pod on a dedicated bridge network (`172.
                     |        (rqworker)      |
                     |                        |
                netbox-postgres (PostgreSQL)  |
-               netbox-redis (Valkey, :6380)  |
-               netbox-redis-cache (Valkey)   |
+               netbox-valkey (Valkey, :6380)  |
+               netbox-valkey-cache (Valkey)   |
                     +------------------------+
 ```
 
@@ -129,20 +129,20 @@ All services run inside a single Podman pod on a dedicated bridge network (`172.
 | `netbox-netbox.container` | `netboxcommunity/netbox:latest-4.0.0` | Web app (port 8080 internal, 8000 published) |
 | `netbox-worker.container` | `netboxcommunity/netbox:latest-4.0.0` | RQ background worker |
 | `netbox-postgres.container` | `postgres:17-alpine` | PostgreSQL database |
-| `netbox-redis.container` | `valkey/valkey:8.1-alpine` | Task queue (port 6380) |
-| `netbox-redis-cache.container` | `valkey/valkey:8.1-alpine` | Cache (port 6379) |
+| `netbox-valkey.container` | `valkey/valkey:8.1-alpine` | Task queue (port 6380) |
+| `netbox-valkey-cache.container` | `valkey/valkey:8.1-alpine` | Cache (port 6379) |
 
 ### Startup Dependencies
 
 ```
-netbox-postgres, netbox-redis, netbox-redis-cache
+netbox-postgres, netbox-valkey, netbox-valkey-cache
     +---> netbox-netbox
               +---> netbox-worker
 ```
 
 ### Volumes
 
-Persistent data uses named Podman volumes: `netbox-postgres-data`, `netbox-media-files`, `netbox-report-files`, `netbox-script-files`, `netbox-redis-data`, `netbox-redis-cache-data`.
+Persistent data uses named Podman volumes: `netbox-postgres-data`, `netbox-media-files`, `netbox-report-files`, `netbox-script-files`, `netbox-valkey-data`, `netbox-valkey-cache-data`.
 
 ## Configuration
 
@@ -154,8 +154,8 @@ Environment files in `env/` and `netbox-configuration/extra.py` use `{{PLACEHOLD
 |---|---|
 | `env/netbox.env` | `{{DB_PASSWORD}}`, `{{REDIS_PASSWORD}}`, `{{REDIS_CACHE_PASSWORD}}`, `{{SECRET_KEY}}` |
 | `env/postgres.env` | `{{DB_PASSWORD}}` |
-| `env/redis.env` | `{{REDIS_PASSWORD}}` |
-| `env/redis-cache.env` | `{{REDIS_CACHE_PASSWORD}}` |
+| `env/valkey.env` | `{{REDIS_PASSWORD}}` |
+| `env/valkey-cache.env` | `{{REDIS_CACHE_PASSWORD}}` |
 | `netbox-configuration/extra.py` | `{{API_TOKEN_PEPPER}}` |
 | `netbox.pod` | `{{BIND_ADDRESS}}` |
 
@@ -213,11 +213,11 @@ The long-term goal of this project is to produce a **Helm chart** that deploys N
 - Network topology (mapped to Services and Routes/Ingress)
 
 Planned Helm chart features:
-- Separate Deployments for the web app and worker, StatefulSets for PostgreSQL and Redis
+- Separate Deployments for the web app and worker, StatefulSets for PostgreSQL and Valkey
 - OpenShift Routes with TLS passthrough
 - Configurable StorageClass for PVCs
 - Horizontal Pod Autoscaler for the web app tier
-- Optional external PostgreSQL / Redis for production use
+- Optional external PostgreSQL / Valkey for production use
 
 ## License
 

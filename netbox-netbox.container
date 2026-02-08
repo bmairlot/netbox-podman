@@ -1,6 +1,6 @@
 [Unit]
 Description=Netbox Container
-Requires=netbox-postgres.service netbox-redis.service netbox-redis-cache.service
+Requires=netbox-postgres.service netbox-valkey.service netbox-valkey-cache.service
 
 [Container]
 Image=docker.io/netboxcommunity/netbox:latest-4.0.0

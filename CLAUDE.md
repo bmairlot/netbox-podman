@@ -19,20 +19,20 @@ All services run inside a single Podman pod (`netbox.pod`) on a dedicated bridge
 | `netbox-netbox.container` | netbox-netbox | `netboxcommunity/netbox:latest-4.0.0` | Web app (port 8080 internal, 8000 published) |
 | `netbox-worker.container` | netbox-worker | `netboxcommunity/netbox:latest-4.0.0` | RQ background worker (`manage.py rqworker`) |
 | `netbox-postgres.container` | netbox-postgres | `postgres:17-alpine` | PostgreSQL database |
-| `netbox-redis.container` | netbox-redis | `valkey/valkey:8.1-alpine` | Task queue (port 6380) |
-| `netbox-redis-cache.container` | netbox-redis-cache | `valkey/valkey:8.1-alpine` | Cache (port 6379) |
+| `netbox-valkey.container` | netbox-valkey | `valkey/valkey:8.1-alpine` | Task queue (port 6380) |
+| `netbox-valkey-cache.container` | netbox-valkey-cache | `valkey/valkey:8.1-alpine` | Cache (port 6379) |
 
 ### Startup Dependencies
 
 ```
-netbox-postgres, netbox-redis, netbox-redis-cache
+netbox-postgres, netbox-valkey, netbox-valkey-cache
     └──> netbox-netbox
               └──> netbox-worker
 ```
 
 ### Volumes
 
-Persistent data uses named Podman volumes defined in `*.volume` files: `netbox-postgres-data`, `netbox-media-files`, `netbox-reports-files`, `netbox-scripts-files`, `netbox-redis-data`, `netbox-redis-cache-data`.
+Persistent data uses named Podman volumes defined in `*.volume` files: `netbox-postgres-data`, `netbox-media-files`, `netbox-reports-files`, `netbox-scripts-files`, `netbox-valkey-data`, `netbox-valkey-cache-data`.
 
 The `netbox-configuration/` directory is bind-mounted read-only to `/etc/netbox/config` in NetBox containers.
 
@@ -65,10 +65,10 @@ podman exec netbox-netbox /opt/netbox/venv/bin/python /opt/netbox/netbox/manage.
 
 ### Environment Files (`env/`)
 
-- `netbox.env` — Main NetBox settings (DB connection, Redis, email, secrets)
+- `netbox.env` — Main NetBox settings (DB connection, Valkey, email, secrets)
 - `postgres.env` — PostgreSQL credentials
-- `redis.env` — Task queue Redis password and port
-- `redis-cache.env` — Cache Redis password
+- `valkey.env` — Task queue Valkey password and port
+- `valkey-cache.env` — Cache Valkey password
 
 ### Application Config (`netbox-configuration/`)
 
@@ -116,13 +116,13 @@ CONFIG=$(./bootstrap.sh --json)
 
 **`bootstrap.sh`** will:
 1. Tear down any existing NetBox stack (calls `teardown.sh`)
-2. Generate random secrets (DB, Redis, Django secret key, API token pepper, admin password)
+2. Generate random secrets (DB, Valkey, Django secret key, API token pepper, admin password)
 3. Resolve `{{PLACEHOLDER}}` tokens in env files → `generated/` directory (templates stay untouched)
 4. Install Quadlet units to `~/.config/containers/systemd/` pointing at resolved files
 5. Start the pod and wait for all health checks to pass
 6. Create an `admin` superuser and print login credentials
 
-With `--json`, progress goes to stderr and a JSON object with all connection details (url, credentials, DB/Redis passwords, etc.) is printed to stdout.
+With `--json`, progress goes to stderr and a JSON object with all connection details (url, credentials, DB/Valkey passwords, etc.) is printed to stdout.
 
 **`teardown.sh`** will:
 1. Stop all NetBox systemd units (pod + network)
@@ -137,4 +137,4 @@ The `generated/` directory is git-ignored and contains resolved (secret-bearing)
 - **netbox-netbox**: `curl -f http://localhost:8080/login/`
 - **netbox-worker**: Process check for `rqworker`
 - **netbox-postgres**: `pg_isready`
-- **netbox-redis/cache**: `valkey-cli ping`
+- **netbox-valkey/cache**: `valkey-cli ping`

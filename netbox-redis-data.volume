@@ -1,5 +1,0 @@
-[Unit]
-Description=netbox-redis-data
-
-[Volume]
-VolumeName=netbox-redis-data

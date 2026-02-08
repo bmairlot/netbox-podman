@@ -18,7 +18,7 @@ for arg in "$@"; do
             echo "Tear down the NetBox stack."
             echo ""
             echo "Options:"
-            echo "  --keep-data  Keep volumes intact (DB, Redis, media) for faster re-bootstrap"
+            echo "  --keep-data  Keep volumes intact (DB, Valkey, media) for faster re-bootstrap"
             echo "  -h|--help    Show this help"
             exit 0
             ;;
@@ -43,7 +43,7 @@ systemctl --user stop netbox-network.service 2>/dev/null || true
 systemctl --user reset-failed 'netbox-*' 2>/dev/null || true
 
 # Remove containers that may linger
-for c in netbox-netbox netbox-worker netbox-postgres netbox-redis netbox-redis-cache; do
+for c in netbox-netbox netbox-worker netbox-postgres netbox-valkey netbox-valkey-cache; do
     podman rm -f "$c" 2>/dev/null || true
 done
 podman pod rm -f netbox 2>/dev/null || true
@@ -51,7 +51,7 @@ podman pod rm -f netbox 2>/dev/null || true
 # Remove named volumes (unless --keep-data)
 if [ "$KEEP_DATA" = false ]; then
     for v in netbox-postgres-data netbox-media-files netbox-report-files netbox-script-files \
-             netbox-redis-data netbox-redis-cache-data netbox-configuration; do
+             netbox-valkey-data netbox-valkey-cache-data netbox-configuration; do
         podman volume rm -f "$v" 2>/dev/null || true
     done
 else
