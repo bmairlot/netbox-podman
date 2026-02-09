@@ -95,14 +95,14 @@ Quadlet unit files follow the pattern `netbox-<component>.<type>` where type is 
 ## Bootstrap (Quick Start)
 
 ```bash
-# Spin up a fresh NetBox stack with random credentials:
-./bootstrap.sh
+# Spin up a fresh NetBox stack on localhost:
+./bootstrap.sh --bind=127.0.0.1
 
 # Same, but output connection details as JSON (for test harnesses):
-CONFIG=$(./bootstrap.sh --json)
+CONFIG=$(./bootstrap.sh --bind=127.0.0.1 --json)
 
-# Restrict to localhost only:
-./bootstrap.sh --bind=127.0.0.1
+# Bind to a specific IP (e.g. for remote access):
+./bootstrap.sh --bind=192.168.1.10
 
 # Tear down everything when done:
 ./teardown.sh
@@ -111,7 +111,7 @@ CONFIG=$(./bootstrap.sh --json)
 ./teardown.sh --keep-data
 
 # Re-bootstrap reusing existing data volumes:
-./bootstrap.sh --keep-data
+./bootstrap.sh --bind=127.0.0.1 --keep-data
 ```
 
 **`bootstrap.sh`** will:

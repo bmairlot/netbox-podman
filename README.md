@@ -13,14 +13,14 @@ This project is designed to work as a **test fixture** for the [`ancalagon/netbo
 ## Quick Start
 
 ```bash
-# Spin up a fresh NetBox instance:
-./bootstrap.sh
+# Spin up a fresh NetBox instance on localhost:
+./bootstrap.sh --bind=127.0.0.1
+
+# Bind to a specific IP (e.g. for remote access or CI):
+./bootstrap.sh --bind=192.168.1.10
 
 # Machine-readable output for test harnesses:
-CONFIG=$(./bootstrap.sh --json)
-
-# Restrict to localhost only:
-./bootstrap.sh --bind=127.0.0.1
+CONFIG=$(./bootstrap.sh --bind=127.0.0.1 --json)
 
 # Tear down everything when done:
 ./teardown.sh
@@ -29,7 +29,7 @@ CONFIG=$(./bootstrap.sh --json)
 ./teardown.sh --keep-data
 
 # Re-bootstrap reusing existing data volumes:
-./bootstrap.sh --keep-data
+./bootstrap.sh --bind=127.0.0.1 --keep-data
 ```
 
 The first run will pull container images and run Django migrations, which may take a few minutes. Subsequent runs are faster -- especially with `--keep-data`, which preserves volumes so migrations are skipped entirely.
@@ -38,8 +38,8 @@ The first run will pull container images and run Django migrations, which may ta
 
 | Option | Description |
 |---|---|
+| `--bind=ADDRESS` | **Required.** Reachable IP address to bind published ports to |
 | `--json` | Output connection details as JSON to stdout (progress goes to stderr) |
-| `--bind=ADDRESS` | Bind address for published ports (default: `0.0.0.0`) |
 | `--keep-data` | Preserve existing volumes (DB, Valkey, media) for faster startup |
 | `-h`, `--help` | Show usage help |
 

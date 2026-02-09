@@ -9,7 +9,7 @@ QUADLET_DIR="$HOME/.config/containers/systemd"
 # Argument parsing
 # ---------------------------------------------------------------------------
 JSON_OUTPUT=false
-BIND_ADDRESS="0.0.0.0"
+BIND_ADDRESS=""
 KEEP_DATA=false
 for arg in "$@"; do
     case "$arg" in
@@ -17,15 +17,15 @@ for arg in "$@"; do
         --bind=*) BIND_ADDRESS="${arg#--bind=}" ;;
         --keep-data) KEEP_DATA=true ;;
         -h|--help)
-            echo "Usage: $(basename "$0") [--json] [--bind=ADDRESS] [--keep-data]"
+            echo "Usage: $(basename "$0") --bind=ADDRESS [--json] [--keep-data]"
             echo ""
             echo "Bootstrap a fresh NetBox instance for testing."
             echo ""
             echo "Options:"
+            echo "  --bind=ADDRESS   Reachable IP address to bind published ports to (required)"
+            echo "                   Examples: --bind=127.0.0.1  --bind=192.168.1.10"
             echo "  --json           Output connection details as JSON to stdout"
             echo "                   (progress is sent to stderr)"
-            echo "  --bind=ADDRESS   Bind address for published ports (default: 0.0.0.0)"
-            echo "                   Use 127.0.0.1 to restrict to localhost only"
             echo "  --keep-data      Preserve volumes (DB, Valkey, media) from a previous run"
             echo "                   for faster startup (skips migrations)"
             echo "  -h|--help        Show this help"
@@ -34,6 +34,12 @@ for arg in "$@"; do
         *) echo "Unknown option: $arg" >&2; exit 1 ;;
     esac
 done
+
+if [ -z "$BIND_ADDRESS" ]; then
+    echo "Error: --bind=ADDRESS is required." >&2
+    echo "Usage: $(basename "$0") --bind=ADDRESS [--json] [--keep-data]" >&2
+    exit 1
+fi
 
 # ---------------------------------------------------------------------------
 # Output helpers — in JSON mode, progress goes to stderr
@@ -97,17 +103,6 @@ fi
 info "Resolving template files into generated/..."
 
 mkdir -p "$GENERATED_DIR/env" "$GENERATED_DIR/netbox-configuration"
-
-# Persist secrets so --keep-data can reuse them
-cat > "$SECRETS_FILE" <<SECRETS
-DB_PASSWORD='${DB_PASSWORD}'
-REDIS_PASSWORD='${REDIS_PASSWORD}'
-REDIS_CACHE_PASSWORD='${REDIS_CACHE_PASSWORD}'
-SECRET_KEY='${SECRET_KEY}'
-API_TOKEN_PEPPER='${API_TOKEN_PEPPER}'
-ADMIN_PASSWORD='${ADMIN_PASSWORD}'
-SECRETS
-chmod 600 "$SECRETS_FILE"
 
 resolve() {
     sed \
@@ -246,7 +241,47 @@ fi
 ok "Admin user ready."
 
 # ---------------------------------------------------------------------------
-# 8. Output
+# 8. Create API v2 token
+# ---------------------------------------------------------------------------
+if [ "$JSON_OUTPUT" = true ]; then
+    if [ -n "${API_TOKEN_KEY:-}" ] && [ -n "${API_TOKEN_SECRET:-}" ]; then
+        info "Reusing API token from previous run..."
+    else
+        info "Creating API v2 token..."
+        token_output="$(podman exec netbox-netbox /opt/netbox/venv/bin/python /opt/netbox/netbox/manage.py shell -c "
+from users.models import Token
+from django.contrib.auth import get_user_model
+User = get_user_model()
+admin = User.objects.get(username='admin')
+Token.objects.filter(user=admin, description='bootstrap').delete()
+t = Token(user=admin, description='bootstrap', write_enabled=True)
+t.save()
+print(f'key={t.key}')
+print(f'token={t.token}')
+" 2>/dev/null | grep -E '^(key|token)=')"
+        API_TOKEN_KEY="$(echo "$token_output" | grep '^key=' | cut -d= -f2)"
+        API_TOKEN_SECRET="$(echo "$token_output" | grep '^token=' | cut -d= -f2)"
+    fi
+    ok "API token ready."
+fi
+
+# ---------------------------------------------------------------------------
+# 9. Persist all secrets for --keep-data reuse
+# ---------------------------------------------------------------------------
+cat > "$SECRETS_FILE" <<SECRETS
+DB_PASSWORD='${DB_PASSWORD}'
+REDIS_PASSWORD='${REDIS_PASSWORD}'
+REDIS_CACHE_PASSWORD='${REDIS_CACHE_PASSWORD}'
+SECRET_KEY='${SECRET_KEY}'
+API_TOKEN_PEPPER='${API_TOKEN_PEPPER}'
+ADMIN_PASSWORD='${ADMIN_PASSWORD}'
+API_TOKEN_KEY='${API_TOKEN_KEY:-}'
+API_TOKEN_SECRET='${API_TOKEN_SECRET:-}'
+SECRETS
+chmod 600 "$SECRETS_FILE"
+
+# ---------------------------------------------------------------------------
+# 10. Output
 # ---------------------------------------------------------------------------
 if [ "$JSON_OUTPUT" = true ]; then
     cat <<EOF
@@ -255,6 +290,9 @@ if [ "$JSON_OUTPUT" = true ]; then
   "username": "admin",
   "password": "${ADMIN_PASSWORD}",
   "api_url": "http://${BIND_ADDRESS}:8000/api",
+  "api_token_key": "${API_TOKEN_KEY}",
+  "api_token_secret": "${API_TOKEN_SECRET}",
+  "api_token_bearer": "nbt_${API_TOKEN_KEY}.${API_TOKEN_SECRET}",
   "db_host": "netbox-postgres",
   "db_port": 5432,
   "db_name": "netbox",
