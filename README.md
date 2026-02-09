@@ -91,17 +91,65 @@ When using `--json`, the output contains everything a test harness needs:
 This repository can be added as a Composer dev dependency to provide a disposable NetBox instance for PHPUnit tests:
 
 ```bash
-composer require --dev ancalagon/netbox-server
+composer require --dev ancalagon/netbox-podman
 ```
 
-In your PHPUnit bootstrap or CI script:
+Composer will symlink `bootstrap.sh` and `teardown.sh` into `vendor/bin/`, so they are available on your `$PATH` when using Composer scripts.
+
+### Example: PHPUnit bootstrap file
+
+Create a `tests/bootstrap.php` that starts NetBox before the test suite runs:
+
+```php
+<?php
+// tests/bootstrap.php
+
+$config = shell_exec('vendor/bin/bootstrap.sh --json --bind=127.0.0.1');
+$netbox = json_decode($config, true);
+
+// Expose connection details as environment variables for your tests
+putenv("NETBOX_URL={$netbox['url']}");
+putenv("NETBOX_API_URL={$netbox['api_url']}");
+putenv("NETBOX_USERNAME={$netbox['username']}");
+putenv("NETBOX_PASSWORD={$netbox['password']}");
+
+// Optional: register a shutdown function to tear down when tests finish
+register_shutdown_function(function () {
+    shell_exec('vendor/bin/teardown.sh');
+});
+```
+
+Then point your `phpunit.xml` at it:
+
+```xml
+<phpunit bootstrap="tests/bootstrap.php">
+    <!-- ... -->
+</phpunit>
+```
+
+### Example: CI script
+
+If you prefer to manage the lifecycle outside of PHP (e.g. in a Makefile or CI job):
 
 ```bash
-CONFIG=$(vendor/ancalagon/netbox-server/bootstrap.sh --json)
+# Start NetBox and capture connection details
+CONFIG=$(vendor/bin/bootstrap.sh --json --bind=127.0.0.1)
 export NETBOX_URL=$(echo "$CONFIG" | jq -r .url)
+export NETBOX_API_URL=$(echo "$CONFIG" | jq -r .api_url)
+export NETBOX_USERNAME=$(echo "$CONFIG" | jq -r .username)
 export NETBOX_PASSWORD=$(echo "$CONFIG" | jq -r .password)
-# ... run tests ...
-vendor/ancalagon/netbox-server/teardown.sh
+
+# Run your test suite
+vendor/bin/phpunit
+
+# Tear down
+vendor/bin/teardown.sh
+```
+
+For faster iteration during development, use `--keep-data` so that subsequent runs skip database migrations:
+
+```bash
+vendor/bin/bootstrap.sh --json --keep-data
 ```
 
 ## Architecture

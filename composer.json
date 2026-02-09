@@ -1,0 +1,16 @@
+{
+    "name": "ancalagon/netbox-podman",
+    "description": "Podman Quadlet deployment for NetBox — one-command bootstrap for integration testing",
+    "type": "library",
+    "license": "MIT",
+    "keywords": ["netbox", "podman", "quadlet", "testing", "integration-testing"],
+    "homepage": "https://github.com/bmairlot/netbox-podman",
+    "bin": [
+        "bootstrap.sh",
+        "teardown.sh"
+    ],
+    "support": {
+        "issues": "https://github.com/bmairlot/netbox-podman/issues",
+        "source": "https://github.com/bmairlot/netbox-podman"
+    }
+}
