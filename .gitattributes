@@ -2,3 +2,6 @@
 /.gitattributes  export-ignore
 /.gitignore      export-ignore
 /CLAUDE.md       export-ignore
+
+# Prevent GitHub Linguist from detecting Python as the repo language
+netbox-configuration/** linguist-vendored
